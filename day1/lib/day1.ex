@@ -1,18 +1,29 @@
 defmodule Day1 do
-  @moduledoc """
-  Documentation for `Day1`.
-  """
+  def input do
+    "input.txt"
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn s ->
+      {i, ""} = Integer.parse(s)
+      i
+    end)
+  end
 
-  @doc """
-  Hello world.
+  def windows(enum, len) do
+    Stream.chunk_every(enum, len, 1, :discard)
+  end
 
-  ## Examples
+  def part_one() do
+    input()
+    |> windows(2)
+    |> Enum.count(fn [a, b] -> b > a end)
+  end
 
-      iex> Day1.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def part_two() do
+    input()
+    |> windows(3)
+    |> Enum.map(&Enum.sum/1)
+    |> windows(2)
+    |> Enum.count(fn [a, b] -> b > a end)
   end
 end
