@@ -59,22 +59,11 @@ defmodule Day5 do
     |> String.trim()
     |> String.split("\n", trim: true)
     |> Enum.map(fn line ->
-      [p, "->", q] = String.split(line)
-      {parse_coordinates(p), parse_coordinates(q)}
+      [src, "->", dst] = String.split(line)
+      [src_x, src_y] = src |> String.split(",") |> Enum.map(&String.to_integer/1)
+      [dst_x, dst_y] = dst |> String.split(",") |> Enum.map(&String.to_integer/1)
+      {{src_x, src_y}, {dst_x, dst_y}}
     end)
-  end
-
-  @doc ~S"""
-  Parses some coordinates.
-
-  ## Examples
-
-      iex> Day5.parse_coordinates("32,1")
-      {32,1}
-  """
-  def parse_coordinates(s) do
-    [x, y] = String.split(s, ",")
-    {String.to_integer(x), String.to_integer(y)}
   end
 
   @doc ~S"""
