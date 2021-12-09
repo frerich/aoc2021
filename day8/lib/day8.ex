@@ -44,21 +44,14 @@ defmodule Day8 do
       986163
   """
   def part_two(input_file \\ "input.txt") do
-    possible_assignments =
-      'abcdefg'
-      |> permutations()
-      |> Enum.map(fn permutation ->
-        permutation
-        |> Enum.zip('abcdefg')
-        |> Map.new()
-      end)
-
     File.read!(input_file)
     |> parse()
-    |> Enum.map(fn {patterns, digits} -> 
-      possible_assignments
-      |> assignment_for_patterns(patterns)
-      |> decode(digits)
+    |> Enum.map(fn {patterns, digits} ->
+      assignment = pick(patterns)
+
+      digits
+      |> Enum.map(& pattern_to_digit(&1, assignment))
+      |> Integer.undigits()
     end)
     |> Enum.sum()
   end
@@ -92,54 +85,54 @@ defmodule Day8 do
   def parse_record(record) do
     [patterns, digits] = String.split(record, "|")
 
-    patterns = patterns |> String.split() |> Enum.map(& Enum.sort(String.to_charlist(&1)))
-    digits = digits |> String.split() |> Enum.map(& Enum.sort(String.to_charlist(&1)))
+    patterns = patterns |> String.split() |> Enum.map(&Enum.sort(String.to_charlist(&1)))
+    digits = digits |> String.split() |> Enum.map(&Enum.sort(String.to_charlist(&1)))
     {patterns, digits}
   end
 
-  @doc ~S"""
-  Decodes a digit identified by the wire signals given a mapping of wires to
-  segments.
-  """
-  def decode(assignment, digits) do
-    digits
-    |> Enum.map(fn digit ->
-      reverse_translated_segments = Enum.map(digit, fn segment -> Map.get(assignment, segment) end)
-      Map.get(@digits, Enum.sort(reverse_translated_segments))
-    end)
-    |> Integer.undigits()
-  end
+  def candidates(patterns) do
+    Enum.map(0..9, fn digit ->
+      num_segments =
+        Enum.find_value(@digits, fn {segments, d} -> if d === digit, do: Enum.count(segments) end)
 
-  @doc ~S"""
-  Computes the assignment of wires to segments given a list of patterns.
-  """
-  def assignment_for_patterns(possible_assignments, patterns) do
-    possible_assignments
-    |> Enum.find(fn assignment ->
-      Enum.all?(patterns, fn pattern ->
-        translated_pattern = Enum.map(pattern, fn segment -> Map.get(assignment, segment) end)
-        Map.has_key?(@digits, Enum.sort(translated_pattern))
-      end)
+      Enum.filter(patterns, fn wires -> Enum.count(wires) == num_segments end)
     end)
   end
 
-  @doc ~S"""
-  Generates all permutations of the given list.
+  def pick(patterns) do
+    candidates = candidates(patterns)
 
-  ## Examples
-
-      iex> Day8.permutations([1])
-      [[1]]
-
-      iex> Day8.permutations([1,2,3])
-      [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]
-  """
-  def permutations([]), do: [[]]
-  def permutations(list) do
-    Enum.flat_map(list, fn x ->
-      for permutation <- permutations(list -- [x]) do
-        [x | permutation]
+    [assignment] =
+      for {c, rest} <- select('abcdefg'),
+          {f, rest} <- select(rest),
+          Enum.any?(Enum.at(candidates, 1), fn wires -> [c, f] -- wires == [] end),
+          {a, rest} <- select(rest),
+          Enum.any?(Enum.at(candidates, 7), fn wires -> [a, c, f] -- wires == [] end),
+          {b, rest} <- select(rest),
+          {d, rest} <- select(rest),
+          Enum.any?(Enum.at(candidates, 4), fn wires -> [b, c, d, f] -- wires == [] end),
+          {g, rest} <- select(rest),
+          Enum.any?(Enum.at(candidates, 3), fn wires -> [a, c, d, f, g] -- wires == [] end),
+          Enum.any?(Enum.at(candidates, 5), fn wires -> [a, b, d, f, g] -- wires == [] end),
+          Enum.any?(Enum.at(candidates, 9), fn wires -> [a, b, c, d, f, g] -- wires == [] end),
+          {e, []} <- select(rest),
+          Enum.any?(Enum.at(candidates, 2), fn wires -> [a, c, d, e, g] -- wires == [] end),
+          Enum.any?(Enum.at(candidates, 6), fn wires -> [a, b, d, e, f, g] -- wires == [] end),
+          Enum.any?(Enum.at(candidates, 8), fn wires -> [a, b, c, d, e, f, g] -- wires == [] end),
+          Enum.any?(Enum.at(candidates, 0), fn wires -> [a, b, c, e, f, g] -- wires == [] end) do
+        %{a => ?a, b => ?b, c => ?c, d => ?d, e => ?e, f => ?f, g => ?g}
       end
-    end)
+
+    assignment
+  end
+
+  def pattern_to_digit(pattern, assignment) do
+    segments = Enum.map(pattern, fn wire -> Map.get(assignment, wire) end)
+
+    Map.get(@digits, Enum.sort(segments))
+  end
+
+  def select(list) do
+    Enum.map(0..(Enum.count(list) - 1), &List.pop_at(list, &1))
   end
 end
