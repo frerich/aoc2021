@@ -1,17 +1,4 @@
 defmodule Day8 do
-  @digits %{
-    'abcefg' => 0,
-    'cf' => 1,
-    'acdeg' => 2,
-    'acdfg' => 3,
-    'bcdf' => 4,
-    'abdfg' => 5,
-    'abdefg' => 6,
-    'acf' => 7,
-    'abcdefg' => 8,
-    'abcdfg' => 9
-  }
-
   @doc ~S"""
   Solves part one.
 
@@ -137,9 +124,25 @@ defmodule Day8 do
       1
   """
   def pattern_to_digit(pattern, assignment) do
-    segments = Enum.map(pattern, fn wire -> Map.get(assignment, wire) end)
+    digits = [
+      'abcefg',
+      'cf',
+      'acdeg',
+      'acdfg',
+      'bcdf',
+      'abdfg',
+      'abdefg',
+      'acf',
+      'abcdefg',
+      'abcdfg'
+    ]
 
-    Map.get(@digits, Enum.sort(segments))
+    segments =
+      pattern
+      |> Enum.map(fn wire -> Map.fetch!(assignment, wire) end)
+      |> Enum.sort()
+
+    Enum.find_index(digits, fn digit -> digit == segments end)
   end
 
   @doc ~S"""
