@@ -16,7 +16,6 @@ defmodule Day10 do
     Enum.sum(for {:corrupt, x} <- lines, do: score_corrupt_line(x))
   end
 
-
   @doc ~S"""
   Parses some puzzle input into a convenient format: a list of charlists.
 
@@ -31,7 +30,6 @@ defmodule Day10 do
     |> String.split("\n")
     |> Enum.map(&String.to_charlist/1)
   end
-
 
   @doc ~S"""
   Classifies a line for whether it's valid, incomplete or corrupt.
@@ -63,24 +61,20 @@ defmodule Day10 do
       {:incomplete, ')}>]})'}
   """
   def classify(line) do
-    result =
-      Enum.reduce(line, {:valid, []}, fn
-        _, {:corrupt, x} -> {:corrupt, x}
-        ?(, {:valid, closing} -> {:valid, [?) | closing]}
-        ?[, {:valid, closing} -> {:valid, [?] | closing]}
-        ?{, {:valid, closing} -> {:valid, [?} | closing]}
-        ?<, {:valid, closing} -> {:valid, [?> | closing]}
-        x, {:valid, [x | closing]} -> {:valid, closing}
-        x, {_state, _closing} -> {:corrupt, x}
-      end)
-
-    case result do
-      {:valid, []} -> :valid
-      {:valid, unclosed} -> {:incomplete, unclosed}
-      {:corrupt, x} -> {:corrupt, x}
+    Enum.reduce_while(line, [], fn
+      ?(, closing -> {:cont, [?) | closing]}
+      ?[, closing -> {:cont, [?] | closing]}
+      ?{, closing -> {:cont, [?} | closing]}
+      ?<, closing -> {:cont, [?> | closing]}
+      x, [x | closing] -> {:cont, closing}
+      x, _closing -> {:halt, x}
+    end)
+    |> case do
+      [] -> :valid
+      [_ | _] = missing_chars -> {:incomplete, missing_chars}
+      x -> {:corrupt, x}
     end
   end
-
 
   @doc ~S"""
   Calculates the score of a correupt line based on the first corrupt (i.e.
@@ -98,7 +92,6 @@ defmodule Day10 do
   def score_corrupt_line(?]), do: 57
   def score_corrupt_line(?}), do: 1197
   def score_corrupt_line(?>), do: 25137
-
 
   @doc ~S"""
   Solves part two of the puzzle by computing the median of all scores for
@@ -119,7 +112,6 @@ defmodule Day10 do
 
     Enum.at(Enum.sort(scores), div(length(scores), 2))
   end
-
 
   @doc ~S"""
   Calculates the score of an incomplete line based on the characters which are
