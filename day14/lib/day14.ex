@@ -41,8 +41,6 @@ defmodule Day14 do
   def parse(input) do
     [template | rules] = String.split(input, "\n", trim: true)
 
-    template = to_charlist(template)
-
     rules =
       for line <- rules do
         [element_pair, "->", injected] = String.split(line)
