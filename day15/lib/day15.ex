@@ -54,9 +54,20 @@ defmodule Day15 do
   def render(risk_map) do
     {max_x, max_y} = risk_map |> Map.keys() |> Enum.max()
 
+    shortest_path =
+      risk_map
+      |> graph()
+      |> Graph.get_shortest_path({0, 0}, {max_x, max_y})
+      |> MapSet.new()
+
     Enum.map_join(0..max_y, "\n", fn y ->
       Enum.map_join(0..max_x, "", fn x ->
-        "#{Map.fetch!(risk_map, {x,y})}"
+        risk = Map.fetch!(risk_map, {x,y})
+        if MapSet.member?(shortest_path, {x,y}) do
+          IO.ANSI.bright() <> "#{risk}" <> IO.ANSI.reset()
+        else
+          "#{risk}"
+        end
       end)
     end)
   end
