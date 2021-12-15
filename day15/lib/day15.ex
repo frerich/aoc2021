@@ -28,48 +28,35 @@ defmodule Day15 do
     |> Map.new()
   end
 
-  def graph(risk_map) do
-    risk_map
-    |> Enum.reduce(Graph.new(), fn {{x, y} = current, risk}, g ->
-      [{0, -1}, {0, 1}, {-1, 0}, {1, 0}]
-      |> Enum.map(fn {dx, dy} -> {x + dx, y + dy} end)
-      |> Enum.filter(fn neighbor -> Map.has_key?(risk_map, neighbor) end)
-      |> Enum.reduce(g, fn neighbor, g ->
-        Graph.add_edge(g, neighbor, current, weight: risk)
-      end)
-    end)
+  def risk_to(risk_at, start, target) do
+    next_to_visit = :pqueue2.in(start, 0, :pqueue2.new())
+    risk_to = %{{0, 0} => 0}
+
+    {next_to_visit, risk_to}
+    |> Stream.iterate(fn {next_to_visit, risk_to} -> step(risk_at, target, next_to_visit, risk_to) end)
+    |> Enum.find(&is_integer/1)
   end
 
-  def min_total_risk(risk_map) do
-    bottom_right = risk_map |> Map.keys() |> Enum.max()
+  def step(risk_at, target, next_to_visit, risk_to) do
+    case :pqueue2.out(next_to_visit) do
+      {{:value, ^target}, _next_to_visit} ->
+        risk_to[target]
 
-    risk_map
-    |> graph()
-    |> Graph.get_shortest_path({0, 0}, bottom_right)
-    |> Enum.map(fn pos -> Map.fetch!(risk_map, pos) end)
-    |> Enum.sum()
-    |> then(fn sum -> sum - Map.fetch!(risk_map, {0, 0}) end)
-  end
+      {{:value, {x, y}}, next_to_visit} ->
+        [{x + 1, y}, {x, y + 1}, {x - 1, y}, {x, y - 1}]
+        |> Enum.filter(fn next -> Map.has_key?(risk_at, next) end)
+        |> Enum.reduce({next_to_visit, risk_to}, fn next, {next_to_visit, risk_to} ->
+          risk_to_next = risk_to[{x, y}] + risk_at[next]
 
-  def render(risk_map) do
-    {max_x, max_y} = risk_map |> Map.keys() |> Enum.max()
-
-    shortest_path =
-      risk_map
-      |> graph()
-      |> Graph.get_shortest_path({0, 0}, {max_x, max_y})
-      |> MapSet.new()
-
-    Enum.map_join(0..max_y, "\n", fn y ->
-      Enum.map_join(0..max_x, "", fn x ->
-        risk = Map.fetch!(risk_map, {x,y})
-        if MapSet.member?(shortest_path, {x,y}) do
-          IO.ANSI.bright() <> "#{risk}" <> IO.ANSI.reset()
-        else
-          "#{risk}"
-        end
-      end)
-    end)
+          if not Map.has_key?(risk_to, next) or risk_to_next < risk_to[next] do
+            next_to_visit = :pqueue2.in(next, risk_to_next, next_to_visit)
+            risk_to = Map.put(risk_to, next, risk_to_next)
+            {next_to_visit, risk_to}
+          else
+            {next_to_visit, risk_to}
+          end
+        end)
+    end
   end
 
   def expand(risk_map) do
@@ -85,10 +72,14 @@ defmodule Day15 do
   end
 
   def part_one(input_file \\ "input.txt") do
-    input_file |> File.read!() |> parse() |> min_total_risk()
+    risk_map = input_file |> File.read!() |> parse()
+    bottom_right = risk_map |> Map.keys() |> Enum.max()
+    risk_to(risk_map, {0, 0}, bottom_right)
   end
 
   def part_two(input_file \\ "input.txt") do
-    input_file |> File.read!() |> parse() |> expand() |> min_total_risk()
+    risk_map = input_file |> File.read!() |> parse() |> expand()
+    bottom_right = risk_map |> Map.keys() |> Enum.max()
+    risk_to(risk_map, {0, 0}, bottom_right)
   end
 end
